@@ -204,15 +204,25 @@
       resultsDiv.innerHTML = `
         <div class="space-y-6">
           <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">وردەکاری نرخەکان</h3>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-800">وردەکاری نرخەکان</h3>
+              <button onclick="copyPricesToClipboard(event)" id="copyPrices" class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span>کۆپی کردن</span>
+              </button>
+            </div>
             <div class="space-y-3 text-base">
               <div class="grid grid-cols-3 gap-2 items-center"><span class="font-bold">عەیارە ٢١</span><span class="text-center font-semibold text-gray-700">نرخ بە دۆلار</span><span class="text-center font-semibold text-yellow-700">نرخ بە دینار</span></div>
               <div class="grid grid-cols-3 gap-2 py-2 border-t"><span>گرام:</span><span class="text-center">$${gram21_usd.toFixed(2)}</span><span class="text-center">${toIQD(gram21_usd)}</span></div>
               <div class="grid grid-cols-3 gap-2 py-2 border-t bg-yellow-50 rounded"><span>مسقاڵ:</span><span class="text-center font-bold">$${mithqal21_usd.toFixed(2)}</span><span class="text-center font-bold">${toIQD(mithqal21_usd)}</span></div>
+              <div class="grid grid-cols-3 gap-2 py-2 border-t"><span>لیرە:</span><span class="text-center">$${(mithqal21_usd * 1.5).toFixed(2)}</span><span class="text-center">${toIQD(mithqal21_usd * 1.5)}</span></div>
               <div class="grid grid-cols-3 gap-2 py-2 border-t"><span>کیلۆ:</span><span class="text-center">$${numberWithCommas(kilo21_usd.toFixed(2))}</span><span class="text-center">${toIQD(kilo21_usd)}</span></div>
               <div class="grid grid-cols-3 gap-2 items-center mt-4"><span class="font-bold">عەیارە ٢٤</span><span class="text-center font-semibold text-gray-700">نرخ بە دۆلار</span><span class="text-center font-semibold text-yellow-700">نرخ بە دینار</span></div>
               <div class="grid grid-cols-3 gap-2 py-2 border-t"><span>گرام:</span><span class="text-center">$${gram24_usd.toFixed(2)}</span><span class="text-center">${toIQD(gram24_usd)}</span></div>
               <div class="grid grid-cols-3 gap-2 py-2 border-t"><span>مسقاڵ:</span><span class="text-center">$${mithqal24_usd.toFixed(2)}</span><span class="text-center">${toIQD(mithqal24_usd)}</span></div>
+              <div class="grid grid-cols-3 gap-2 py-2 border-t"><span>لیرە:</span><span class="text-center">$${(mithqal24_usd * 1.5).toFixed(2)}</span><span class="text-center">${toIQD(mithqal24_usd * 1.5)}</span></div>
               <div class="grid grid-cols-3 gap-2 py-2 border-t"><span>کیلۆ:</span><span class="text-center">$${numberWithCommas(kilo24_usd.toFixed(2))}</span><span class="text-center">${toIQD(kilo24_usd)}</span></div>
             </div>
           </div>
@@ -280,11 +290,131 @@
       `;
     }
 
+    // --- Copy Prices Function ---
+    async function copyPricesToClipboard(event) {
+      event.preventDefault();
+      console.log('Copy function triggered'); // Debug log
+      
+      const { ouncePrice, dollarRate } = getGlobalInputs();
+      if (ouncePrice === 0 || dollarRate === 0) {
+        alert('تکایە دڵنیابە لە نرخی ئۆنسە و دۆلار');
+        return;
+      }
+
+      const rate = dollarRate / 100;
+      const toIQD = (usd_price) => numberWithCommas(Math.round(usd_price * rate));
+
+      const gram24_usd = ouncePrice / OUNCE_TO_GRAM;
+      const gram21_usd = gram24_usd * (21 / 24);
+      const mithqal24_usd = gram24_usd * MITHQAL_TO_GRAM;
+      const mithqal21_usd = gram21_usd * MITHQAL_TO_GRAM;
+
+      // Format current date in Kurdish
+      const now = new Date();
+      const kurdishDays = ['یەکشەممە', 'دووشەممە', 'سێشەممە', 'چوارشەممە', 'پێنجشەممە', 'هەینی', 'شەممە'];
+      let dateStr;
+      try {
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const dayName = kurdishDays[now.getDay()];
+        const hour = String(now.getHours()).padStart(2, '0');
+        const minute = String(now.getMinutes()).padStart(2, '0');
+        
+        dateStr = `${day}/${month}/${year}\n${dayName}\n${hour}:${minute}`;
+      } catch (e) {
+        // Fallback date format if Kurdish locale isn't available
+        dateStr = now.toLocaleString();
+      }
+
+      // Prepare the text to be copied
+      const textToCopy = `نرخی زێڕ
+${dateStr}
+--------------------------------
+عەیارە ٢١:
+• یەک گرام: ${gram21_usd.toFixed(2)}$ / ${toIQD(gram21_usd)} دینار
+• یەک مسقاڵ: ${mithqal21_usd.toFixed(2)}$ / ${toIQD(mithqal21_usd)} دینار
+• یەک لیرە: ${(mithqal21_usd * 1.5).toFixed(2)}$ / ${toIQD(mithqal21_usd * 1.5)} دینار
+
+عەیارە ٢٤:
+• یەک گرام: ${gram24_usd.toFixed(2)}$ / ${toIQD(gram24_usd)} دینار
+• یەک مسقاڵ: ${mithqal24_usd.toFixed(2)}$ / ${toIQD(mithqal24_usd)} دینار
+• یەک لیرە: ${(mithqal24_usd * 1.5).toFixed(2)}$ / ${toIQD(mithqal24_usd * 1.5)} دینار
+
+نرخی دۆلار: 100$ = ${numberWithCommas(dollarRate)} دینار
+--------------------------------`;
+
+      console.log('Attempting to copy:', textToCopy); // Debug log
+      
+      try {
+        // Create a temporary textarea
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        
+        // Make it invisible but keep it in the viewport
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.opacity = '0';
+        
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        // Try to copy
+        const successful = document.execCommand('copy');
+        if (!successful) throw new Error('Copy command failed');
+        
+        // Remove the textarea
+        document.body.removeChild(textArea);
+        
+        // Show success message
+        const copyBtn = document.getElementById('copyPrices');
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>کۆپی کرا!</span>`;
+        copyBtn.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'text-gray-700');
+        copyBtn.classList.add('bg-green-100', 'text-green-700');
+        
+        setTimeout(() => {
+          copyBtn.innerHTML = originalText;
+          copyBtn.classList.remove('bg-green-100', 'text-green-700');
+          copyBtn.classList.add('bg-gray-100', 'hover:bg-gray-200', 'text-gray-700');
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy text: ', err);
+        alert('ببورە، کێشەیەک هەیە لە کۆپی کردنی نرخەکان');
+        
+        // Try alternative clipboard API as fallback
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(textToCopy);
+            const copyBtn = document.getElementById('copyPrices');
+            copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>کۆپی کرا!</span>`;
+            copyBtn.classList.add('bg-green-100', 'text-green-700');
+          } catch (clipboardErr) {
+            console.error('Clipboard API failed:', clipboardErr);
+          }
+        }
+      }
+    }
+
     // --- Initial Setup ---
     document.addEventListener('DOMContentLoaded', () => {
       setupCommaFormatting('dollarRate');
       setupCommaFormatting('buyPriceMithqalIQD');
       setupCommaFormatting('sellPriceMithqalIQD');
+      
+      // Set up copy button
+      const copyButton = document.getElementById('copyPrices');
+      if (copyButton) {
+        copyButton.addEventListener('click', copyPricesToClipboard);
+      }
       
       // Fetch the live price when the page loads
       fetchGoldPrice();
